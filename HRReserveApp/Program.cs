@@ -14,6 +14,7 @@ internal static class Program
         var store = new AppDataStore();
         var authService = new AuthService(store);
         var reserveService = new ReserveService(store);
+        var reportService = new ReportService(reserveService);
 
         using var login = new LoginForm(authService);
         if (login.ShowDialog() != DialogResult.OK || login.CurrentUser is null)
@@ -21,6 +22,6 @@ internal static class Program
             return;
         }
 
-        Application.Run(new MainForm(login.CurrentUser, reserveService));
+        Application.Run(new MainForm(login.CurrentUser, reserveService, reportService));
     }
 }

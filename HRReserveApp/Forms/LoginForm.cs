@@ -15,57 +15,71 @@ public sealed class LoginForm : Form
     {
         _authService = authService;
 
-        Text = "Авторизация | Кадровый резерв";
-        Width = 460;
-        Height = 320;
+        Text = "Авторизация | HR Reserve";
+        Width = 560;
+        Height = 360;
         StartPosition = FormStartPosition.CenterScreen;
-        FormBorderStyle = FormBorderStyle.FixedDialog;
+        FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
+        BackColor = Color.FromArgb(243, 246, 254);
 
-        var panel = new Panel
+        var card = new Panel
         {
-            Dock = DockStyle.Fill,
-            Padding = new Padding(30),
-            BackColor = Color.FromArgb(245, 248, 255)
+            Width = 460,
+            Height = 250,
+            Left = 45,
+            Top = 45,
+            BackColor = Color.White
         };
 
-        var lblTitle = new Label
+        var title = new Label
         {
-            Text = "Система формирования кадрового резерва",
-            Font = new Font("Segoe UI", 13, FontStyle.Bold),
-            Dock = DockStyle.Top,
-            Height = 60
+            Text = "Система кадрового резерва",
+            Font = new Font("Segoe UI", 15, FontStyle.Bold),
+            Left = 24,
+            Top = 20,
+            Width = 400
         };
 
-        var lblLogin = new Label { Text = "Логин", Top = 75, Left = 15, Width = 80 };
-        _txtLogin = new TextBox { Top = 95, Left = 15, Width = 380, Text = "admin" };
+        var subtitle = new Label
+        {
+            Text = "Авторизация для кадровой службы и аттестационной комиссии",
+            Font = new Font("Segoe UI", 9),
+            ForeColor = Color.DimGray,
+            Left = 24,
+            Top = 52,
+            Width = 420
+        };
 
-        var lblPassword = new Label { Text = "Пароль", Top = 130, Left = 15, Width = 80 };
-        _txtPassword = new TextBox { Top = 150, Left = 15, Width = 380, UseSystemPasswordChar = true, Text = "admin123" };
+        _txtLogin = new TextBox { Left = 24, Top = 92, Width = 410, PlaceholderText = "Логин" };
+        _txtPassword = new TextBox { Left = 24, Top = 130, Width = 410, PlaceholderText = "Пароль", UseSystemPasswordChar = true };
 
         var btnLogin = new Button
         {
-            Text = "Войти",
-            Top = 200,
-            Left = 15,
-            Width = 380,
+            Text = "Войти в систему",
+            Left = 24,
+            Top = 176,
+            Width = 410,
             Height = 38,
-            BackColor = Color.FromArgb(45, 108, 223),
-            ForeColor = Color.White,
-            FlatStyle = FlatStyle.Flat
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(47, 94, 214),
+            ForeColor = Color.White
         };
 
         btnLogin.Click += (_, _) => SignIn();
         AcceptButton = btnLogin;
 
-        panel.Controls.Add(lblTitle);
-        panel.Controls.Add(lblLogin);
-        panel.Controls.Add(_txtLogin);
-        panel.Controls.Add(lblPassword);
-        panel.Controls.Add(_txtPassword);
-        panel.Controls.Add(btnLogin);
+        var hint = new Label
+        {
+            Text = "Тестовый доступ: admin / admin123",
+            Left = 24,
+            Top = 218,
+            Width = 410,
+            ForeColor = Color.Gray
+        };
 
-        Controls.Add(panel);
+        card.Controls.AddRange([title, subtitle, _txtLogin, _txtPassword, btnLogin, hint]);
+        Controls.Add(card);
     }
 
     private void SignIn()
@@ -73,7 +87,7 @@ public sealed class LoginForm : Form
         var user = _authService.SignIn(_txtLogin.Text.Trim(), _txtPassword.Text.Trim());
         if (user is null)
         {
-            MessageBox.Show("Неверный логин или пароль", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show("Неверный логин или пароль", "Ошибка входа", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
 

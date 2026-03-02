@@ -7,6 +7,27 @@ public sealed class ReserveService(AppDataStore dataStore)
 {
     public IReadOnlyList<Employee> GetEmployees() => dataStore.Load().Employees.OrderBy(x => x.FullName).ToList();
 
+    public IReadOnlyList<Employee> SearchEmployees(string query, string? competency = null)
+    {
+        var items = dataStore.Load().Employees.AsEnumerable();
+
+        if (!string.IsNullOrWhiteSpace(query))
+        {
+            var q = query.Trim();
+            items = items.Where(x =>
+                x.FullName.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                x.Position.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                x.Department.Contains(q, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (!string.IsNullOrWhiteSpace(competency) && competency != "Все")
+        {
+            items = items.Where(x => x.CompetencyLevel == competency);
+        }
+
+        return items.OrderBy(x => x.FullName).ToList();
+    }
+
     public IReadOnlyList<AttestationViewModel> GetAttestations()
     {
         var data = dataStore.Load();
@@ -30,6 +51,26 @@ public sealed class ReserveService(AppDataStore dataStore)
             .OrderBy(a => a.PlannedDate)
             .ToList();
     }
+
+    public IReadOnlyList<AttestationViewModel> GetUpcomingAttestations(int days)
+    {
+        var end = DateTime.Today.AddDays(days);
+        return GetAttestations()
+            .Where(x => x.PlannedDate.Date >= DateTime.Today && x.PlannedDate.Date <= end)
+            .ToList();
+    }
+
+    public IReadOnlyList<AttestationViewModel> GetOverdueAttestations()
+        => GetAttestations()
+            .Where(x => x.PlannedDate.Date < DateTime.Today && x.Status != "Завершена")
+            .ToList();
+
+    public IReadOnlyList<DepartmentStat> GetDepartmentStats()
+        => dataStore.Load().Employees
+            .GroupBy(x => string.IsNullOrWhiteSpace(x.Department) ? "Без подразделения" : x.Department)
+            .Select(x => new DepartmentStat(x.Key, x.Count()))
+            .OrderByDescending(x => x.CandidatesCount)
+            .ToList();
 
     public void AddEmployee(Employee employee)
     {
@@ -93,16 +134,31 @@ public sealed class ReserveService(AppDataStore dataStore)
         dataStore.Save(data);
     }
 
+    public void MarkAttestationCompleted(Guid id, string result, string comment)
+    {
+        var data = dataStore.Load();
+        var item = data.Attestations.FirstOrDefault(x => x.Id == id);
+        if (item is null) return;
+
+        item.Status = "Завершена";
+        item.CompletedDate = DateTime.Today;
+        item.Result = result;
+        item.CommissionComment = comment;
+
+        dataStore.Save(data);
+    }
+
     public DashboardMetrics GetMetrics()
     {
         var data = dataStore.Load();
 
         var total = data.Employees.Count;
-        var activeAttestation = data.Attestations.Count(x => x.Status == "Запланирована" || x.Status == "В процессе");
+        var activeAttestation = data.Attestations.Count(x => x.Status is "Запланирована" or "В процессе");
         var completed = data.Attestations.Count(x => x.Status == "Завершена");
         var recommended = data.Attestations.Count(x => x.Result == "Рекомендован");
+        var overdue = data.Attestations.Count(x => x.PlannedDate.Date < DateTime.Today && x.Status != "Завершена");
 
-        return new DashboardMetrics(total, activeAttestation, completed, recommended);
+        return new DashboardMetrics(total, activeAttestation, completed, recommended, overdue);
     }
 }
 
@@ -118,4 +174,4 @@ public sealed class AttestationViewModel
     public string CommissionComment { get; init; } = string.Empty;
 }
 
-public sealed record DashboardMetrics(int EmployeesTotal, int ActiveAttestation, int CompletedAttestation, int RecommendedCount);
+public sealed record DashboardMetrics(int EmployeesTotal, int ActiveAttestation, int CompletedAttestation, int RecommendedCount, int OverdueAttestation);
